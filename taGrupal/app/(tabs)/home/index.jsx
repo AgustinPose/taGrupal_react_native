@@ -1,75 +1,76 @@
-import { StyleSheet, ScrollView, TextInput, Button, View, Dimensions } from 'react-native';
+import { StyleSheet, ScrollView, Button, View, Dimensions, FlatList, Image } from 'react-native';
 import { useEffect, useState } from 'react';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { router } from 'expo-router';
+import { router, useRouter, useSearchParams } from 'expo-router';
 
-export default function PantallaPrincipal() {
-  const [tarea, setTarea] = useState('');
-  const [listaTareas, setListaTareas] = useState([]);
-  const [contador, setContador] = useState(0);
+export default function PantallaPrincipal({ route }) {
+  const { listaTareas, setListaTareas } = route.params;
+  const [contador, setContador] = useState(listaTareas.length);
   const [screenSize, setScreenSize] = useState(Dimensions.get('window'));
 
   useEffect(() => {
     const onChange = ({ window }) => {
-      setScreenSize(window); 
+      setScreenSize(window);
     };
 
     const subscription = Dimensions.addEventListener('change', onChange);
-
-    return () => {
-      subscription?.remove();
-    };
+    return () => subscription?.remove();
   }, []);
 
-  const agregarTarea = () => {
-    router.navigate ("/(tabs)/home/formulario")
+  useEffect(() => {
+    setContador(listaTareas.length); // Actualizar contador Listas
+  }, [listaTareas]);
 
+  const agregarTarea = () => {
+    router.navigate("/(tabs)/home/formulario");
   };
 
   const eliminarTarea = (indice) => {
-    setListaTareas(listaTareas.filter((_, i) => i !== indice));
-    setContador(contador - 1);
+    const nuevaLista = listaTareas.filter((_, i) => i !== indice);
+    setListaTareas(nuevaLista);
+    setContador(nuevaLista.length);
   };
 
   return (
     <ScrollView>
       <ThemedView style={estilos.contenedor(screenSize.width)}>
         <ThemedText style={estilos.titulo(screenSize.width, screenSize.height)}>To Do List</ThemedText>
-        <ThemedText style={estilos.contadorEstilo(screenSize.width, screenSize.height)}>Cantidad Tareas: {contador}</ThemedText>
+        <ThemedText style={estilos.contadorEstilo(screenSize.width, screenSize.height)}>
+          Cantidad Tareas: {contador}
+        </ThemedText>
         
         <ThemedView style={estilos.contenedorEntrada(screenSize.height)}>
-         
           <Button title="Nueva tarea" onPress={agregarTarea} />
         </ThemedView>
       </ThemedView>
 
       <ThemedView style={estilos.listaTareas}>
-        {listaTareas.map((tarea, indice) => (
-          <View key={indice} style={estilos.elementoTarea(screenSize.width)}>
-            <ThemedText>{tarea}</ThemedText>
-            <Button
-              title="Eliminar"
-              color="#FF3B30"
-              onPress={() => eliminarTarea(indice)}
-            />
-          </View>
-        ))}
+        <FlatList
+          data={listaTareas}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item, index }) => (
+            <View style={estilos.elementoTarea(screenSize.width)}>
+              {item.image && <Image source={{ uri: item.image }} style={estilos.taskImage} />}
+              <ThemedText>{item.name}</ThemedText>
+              <Button title="Eliminar" onPress={() => eliminarTarea(index)} />
+            </View>
+          )}
+        />
       </ThemedView>
     </ScrollView>
   );
 }
 
-// Estilos como funciones para usar screenSize
 const estilos = {
   contenedor: (width) => ({
-    padding: width * 0.05, // Aplica el 5% del ancho de la pantalla como padding
+    padding: width * 0.05,
   }),
   titulo: (width, height) => ({
-    fontSize: width * 0.06, // Tamaño de fuente relativo al ancho de pantalla
+    fontSize: width * 0.06,
     fontWeight: 'bold',
-    marginTop: height * 0.05, // Espacio en la parte superior relativo al alto de pantalla
-    marginBottom: height * 0.02, // Espacio en la parte inferior
+    marginTop: height * 0.05,
+    marginBottom: height * 0.02,
   }),
   contadorEstilo: (width, height) => ({
     fontSize: width * 0.04,
@@ -80,15 +81,6 @@ const estilos = {
     flexDirection: 'row',
     marginBottom: height * 0.02,
   }),
-  entrada: {
-    flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    marginRight: 10,
-  },
   listaTareas: {
     gap: 10,
   },
@@ -99,6 +91,11 @@ const estilos = {
     padding: 12,
     backgroundColor: '#f8f8f8',
     borderRadius: 5,
-    width: width * 0.9, // Usa el 90% del ancho de la pantalla para las tareas
-  })
+    width: width * 0.9,
+  }),
+  taskImage: {
+    width: 50,
+    height: 50,
+    marginRight: 10,
+  },
 };
